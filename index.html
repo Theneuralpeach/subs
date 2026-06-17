@@ -104,8 +104,9 @@
   .sub .name-wrap{display:flex;align-items:center;gap:10px;min-width:0;}
   .sub .emoji{font-size:20px;flex:none;}
   .sub .name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .sub .cost{font-family:"DM Serif Display",serif;font-size:20px;line-height:1;flex:none;}
+  .sub .cost{font-family:"DM Serif Display",serif;font-size:20px;line-height:1;flex:none;text-align:right;}
   .sub .cost .c{font-family:"Inter",sans-serif;font-size:11px;color:var(--muted);font-weight:500;}
+  .sub .cost .qt{display:block;font-family:"Inter",sans-serif;font-size:10px;color:var(--faint);font-weight:500;margin-top:3px;}
   .sub .bottom{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap;}
   .badge{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface-2);}
   .badge.cat{color:var(--text);}
@@ -643,12 +644,15 @@
     }
     badges += `<span class="badge cat">${cat.emoji} ${cat.name}</span>`;
     const cyc = CYCLE_JP[x.cycle]||"月";
+    const costHtml = x.cycle==="monthly"
+      ? `${fmtMoney(Number(x.cost)||0,x.cur)}<span class="c"> /月</span>`
+      : `${fmtMoney(monthlyEquiv(x),x.cur)}<span class="c"> /月</span><span class="qt">（${cyc} ${fmtMoney(Number(x.cost)||0,x.cur)}）</span>`;
     const pay = x.pay?`<span class="pay">${esc(x.pay)}</span>`:"";
     return `<div class="${cls}" data-id="${x.id}">
       <div class="accentbar"></div>
       <div class="top">
         <div class="name-wrap"><span class="emoji">${cat.emoji}</span><span class="name">${esc(x.name)}</span></div>
-        <div class="cost">${fmtMoney(Number(x.cost)||0,x.cur)}<span class="c"> /${cyc}</span></div>
+        <div class="cost">${costHtml}</div>
       </div>
       <div class="bottom">${badges}${pay}</div>
     </div>`;
