@@ -1,0 +1,14 @@
+{
+  "name": "Subs — サブスク管理",
+  "short_name": "Subs",
+  "description": "今あるサブスクを一覧で管理。月額/年額の合計、次の請求日、解約予定をひと目で。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14110F",
+  "theme_color": "#14110F",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

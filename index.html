@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#14110F" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Subs" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>Subs — サブスク管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#14110F;
+    --surface:#1E1915;
+    --surface-2:#26201B;
+    --line:#332b24;
+    --text:#F3EDE4;
+    --muted:#9C9085;
+    --faint:#6F655B;
+    --accent:#E8A33D;
+    --accent-soft:rgba(232,163,61,.14);
+    --good:#7FB069;
+    --good-soft:rgba(127,176,105,.16);
+    --low:#6E8CA8;
+    --low-soft:rgba(110,140,168,.16);
+    --warn:#D86B5A;
+    --warn-soft:rgba(216,107,90,.16);
+    --radius:18px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bot:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+  body{
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    font-size:16px;line-height:1.5;
+    padding:calc(var(--safe-top) + 8px) 18px calc(100px + var(--safe-bot));
+    max-width:560px;margin:0 auto;min-height:100vh;
+    overscroll-behavior-y:contain;
+  }
+  h1,h2,h3{font-family:"DM Serif Display",Georgia,serif;font-weight:400;letter-spacing:.2px;}
+
+  /* ---------- header ---------- */
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding:6px 0 16px;}
+  .topbar .ttl{font-family:"DM Serif Display",serif;font-size:28px;line-height:1;}
+  .topbar .sub{font-size:12px;color:var(--faint);margin-top:4px;letter-spacing:.3px;}
+  .iconbtn{
+    width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+    background:var(--surface);color:var(--text);font-size:18px;display:grid;place-items:center;
+    cursor:pointer;transition:.15s;flex:none;
+  }
+  .iconbtn:active{transform:scale(.92);background:var(--surface-2);}
+
+  /* ---------- summary ---------- */
+  .summary{
+    background:linear-gradient(160deg,#241d16,#1b1612);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;margin-bottom:14px;
+  }
+  .summary .label{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+  .summary .big{font-family:"DM Serif Display",serif;font-size:42px;line-height:1;}
+  .summary .big .cyc{font-family:"Inter",sans-serif;font-size:15px;color:var(--muted);font-weight:500;}
+  .summary .alt{font-size:13px;color:var(--muted);margin-top:8px;}
+  .summary .meta{display:flex;gap:18px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+  .summary .meta .m{flex:1;}
+  .summary .meta .m .v{font-family:"DM Serif Display",serif;font-size:22px;line-height:1;}
+  .summary .meta .m .k{font-size:11px;color:var(--faint);margin-top:5px;letter-spacing:.5px;}
+
+  /* ---------- alert ---------- */
+  .alert{
+    display:flex;gap:11px;align-items:flex-start;background:var(--warn-soft);border:1px solid rgba(216,107,90,.4);
+    border-radius:14px;padding:13px 15px;margin-bottom:12px;
+  }
+  .alert .ico{font-size:17px;flex:none;line-height:1.3;}
+  .alert .txt{font-size:13.5px;line-height:1.5;color:var(--text);}
+  .alert .txt b{color:var(--warn);font-weight:600;}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    padding:8px 15px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+    color:var(--muted);font-size:13px;cursor:pointer;white-space:nowrap;flex:none;transition:.13s;
+  }
+  .tab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text);}
+  .tab .n{opacity:.6;margin-left:5px;font-variant-numeric:tabular-nums;}
+
+  /* ---------- sub card ---------- */
+  .list{display:flex;flex-direction:column;gap:11px;}
+  .sub{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:15px 16px;cursor:pointer;transition:.13s;position:relative;overflow:hidden;
+  }
+  .sub:active{transform:scale(.99);background:var(--surface-2);}
+  .sub.ended{opacity:.55;}
+  .sub .accentbar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.0;}
+  .sub.soon .accentbar{opacity:1;background:var(--accent);}
+  .sub.due .accentbar{opacity:1;background:var(--warn);}
+  .sub .top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .sub .name-wrap{display:flex;align-items:center;gap:10px;min-width:0;}
+  .sub .emoji{font-size:20px;flex:none;}
+  .sub .name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sub .cost{font-family:"DM Serif Display",serif;font-size:20px;line-height:1;flex:none;}
+  .sub .cost .c{font-family:"Inter",sans-serif;font-size:11px;color:var(--muted);font-weight:500;}
+  .sub .bottom{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap;}
+  .badge{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface-2);}
+  .badge.cat{color:var(--text);}
+  .badge.due{color:var(--warn);border-color:rgba(216,107,90,.4);background:var(--warn-soft);}
+  .badge.soon{color:var(--accent);border-color:rgba(232,163,61,.4);background:var(--accent-soft);}
+  .badge.cancel{color:var(--warn);border-color:rgba(216,107,90,.4);}
+  .badge.pause{color:var(--low);border-color:rgba(110,140,168,.4);background:var(--low-soft);}
+  .sub .pay{font-size:11px;color:var(--faint);margin-left:auto;}
+
+  /* ---------- empty ---------- */
+  .empty{text-align:center;padding:48px 20px;color:var(--faint);}
+  .empty .e-emoji{font-size:40px;opacity:.5;}
+  .empty .e-ttl{font-family:"DM Serif Display",serif;font-size:20px;color:var(--muted);margin-top:14px;}
+  .empty .e-sub{font-size:13.5px;margin-top:8px;line-height:1.6;}
+
+  /* ---------- FAB ---------- */
+  .fab{
+    position:fixed;right:calc(50% - 280px + 18px);bottom:calc(22px + var(--safe-bot));
+    width:58px;height:58px;border-radius:50%;border:none;background:var(--accent);color:#1b1306;
+    font-size:30px;line-height:1;display:grid;place-items:center;cursor:pointer;z-index:40;
+    box-shadow:0 8px 24px rgba(0,0,0,.45);transition:.15s;
+  }
+  .fab:active{transform:scale(.92);}
+  @media(max-width:596px){ .fab{right:22px;} }
+
+  /* ---------- sheet ---------- */
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.2s;z-index:60;}
+  .sheet-bg.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top-left-radius:24px;border-top-right-radius:24px;
+    border-top:1px solid var(--line);padding:8px 18px calc(24px + var(--safe-bot));max-width:560px;margin:0 auto;
+    transform:translateY(100%);transition:.25s cubic-bezier(.2,.8,.2,1);z-index:61;max-height:90vh;overflow:auto;
+  }
+  .sheet.show{transform:translateY(0);}
+  .grabber{width:38px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 16px;}
+  .sheet h2{font-size:22px;margin:0 0 18px;}
+
+  /* ---------- form ---------- */
+  .field{margin-bottom:16px;}
+  .field > label{display:block;font-size:12px;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;}
+  .field input[type="text"],.field input[type="number"],.field input[type="date"],.field input[type="url"],.field textarea{
+    width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;
+    color:var(--text);font-family:inherit;font-size:16px;padding:13px 14px;color-scheme:dark;
+  }
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--accent);}
+  .field input::placeholder,.field textarea::placeholder{color:var(--faint);}
+  .field textarea{min-height:70px;resize:vertical;line-height:1.6;}
+  .twocol{display:flex;gap:12px;}
+  .twocol .field{flex:1;}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;}
+  .seg button{
+    flex:1;min-width:64px;padding:11px 8px;border-radius:11px;border:1px solid var(--line);background:var(--surface-2);
+    color:var(--muted);font-family:inherit;font-size:13.5px;cursor:pointer;transition:.13s;
+  }
+  .seg button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text);}
+  .catgrid{display:flex;gap:7px;flex-wrap:wrap;}
+  .catchip{
+    padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);
+    color:var(--muted);font-size:13px;cursor:pointer;transition:.13s;display:flex;align-items:center;gap:6px;
+  }
+  .catchip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text);}
+  .hidden{display:none;}
+
+  .formbtns{display:flex;gap:10px;margin-top:22px;}
+  .btn{flex:1;padding:15px;border-radius:14px;border:none;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:#1b1306;}
+  .btn-primary:active{transform:scale(.98);}
+  .btn-del{flex:none;width:54px;background:var(--surface);border:1px solid rgba(216,107,90,.4);color:var(--warn);font-size:18px;}
+  .btn-del:active{background:var(--warn-soft);}
+
+  /* ---------- menu sheet ---------- */
+  .menu-item{
+    display:flex;align-items:center;gap:13px;padding:16px 6px;border-bottom:1px solid var(--line);
+    font-size:15.5px;cursor:pointer;color:var(--text);
+  }
+  .menu-item:last-child{border-bottom:none;}
+  .menu-item .mi-emoji{font-size:19px;width:24px;text-align:center;}
+  .menu-item .mi-sub{font-size:12px;color:var(--faint);margin-top:2px;}
+
+  .saved-flash{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:var(--good);color:#0f1c0a;
+    padding:9px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.3s;pointer-events:none;z-index:70;
+  }
+  .saved-flash.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div>
+      <div class="ttl">Subscriptions</div>
+      <div class="sub" id="subhead">今あるサブスクを一覧で</div>
+    </div>
+    <button class="iconbtn" id="menuBtn" aria-label="メニュー">⋯</button>
+  </div>
+
+  <!-- summary dashboard -->
+  <div class="summary">
+    <div class="label">毎月の支払い（現役のみ）</div>
+    <div class="big" id="sumMonthly">$0<span class="cyc"> /月</span></div>
+    <div class="alt" id="sumYearly">年間 $0</div>
+    <div class="meta">
+      <div class="m"><div class="v" id="cntActive">0</div><div class="k">現役</div></div>
+      <div class="m"><div class="v" id="cntAll">0</div><div class="k">登録数</div></div>
+      <div class="m"><div class="v" id="nextLabel">—</div><div class="k">次の更新</div></div>
+    </div>
+  </div>
+
+  <!-- ending-soon alerts -->
+  <div id="alerts"></div>
+
+  <!-- filter tabs -->
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-f="all">すべて<span class="n" id="tn-all">0</span></div>
+    <div class="tab" data-f="active">現役<span class="n" id="tn-active">0</span></div>
+    <div class="tab" data-f="soon">更新間近<span class="n" id="tn-soon">0</span></div>
+    <div class="tab" data-f="off">解約・休止<span class="n" id="tn-off">0</span></div>
+  </div>
+
+  <!-- list -->
+  <div class="list" id="list"></div>
+
+  <button class="fab" id="addBtn" aria-label="追加">＋</button>
+
+  <div class="saved-flash" id="flash">保存しました</div>
+
+  <!-- form sheet -->
+  <div class="sheet-bg" id="formBg"></div>
+  <div class="sheet" id="formSheet">
+    <div class="grabber"></div>
+    <h2 id="formTitle">サブスクを追加</h2>
+
+    <div class="field">
+      <label>サービス名</label>
+      <input type="text" id="f-name" placeholder="例：ElevenLabs" autocomplete="off" />
+    </div>
+
+    <div class="twocol">
+      <div class="field" style="flex:1.3;">
+        <label>金額</label>
+        <input type="number" id="f-cost" inputmode="decimal" placeholder="0" step="0.01" min="0" />
+      </div>
+      <div class="field">
+        <label>通貨</label>
+        <div class="seg" id="f-cur">
+          <button data-v="USD" class="on">$ USD</button>
+          <button data-v="JPY">¥ JPY</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>請求サイクル</label>
+      <div class="seg" id="f-cycle">
+        <button data-v="monthly" class="on">月額</button>
+        <button data-v="yearly">年額</button>
+        <button data-v="quarterly">四半期</button>
+        <button data-v="weekly">週</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>次の請求日</label>
+      <input type="date" id="f-next" />
+    </div>
+
+    <div class="field">
+      <label>カテゴリ</label>
+      <div class="catgrid" id="f-cat"></div>
+    </div>
+
+    <div class="field">
+      <label>支払い方法（任意）</label>
+      <input type="text" id="f-pay" placeholder="例：Chase Ink x0576" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label>ステータス</label>
+      <div class="seg" id="f-status">
+        <button data-v="active" class="on">現役</button>
+        <button data-v="cancelled">解約</button>
+        <button data-v="paused">休止</button>
+      </div>
+    </div>
+
+    <div class="field hidden" id="f-endwrap">
+      <label>利用終了日（ここまで使える）</label>
+      <input type="date" id="f-end" />
+    </div>
+
+    <div class="field">
+      <label>リンク（任意）</label>
+      <input type="url" id="f-url" placeholder="https://" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label>メモ（任意）</label>
+      <textarea id="f-notes" placeholder="残クレジット、解約理由、代替候補など"></textarea>
+    </div>
+
+    <div class="formbtns">
+      <button class="btn btn-del hidden" id="delBtn" aria-label="削除">🗑</button>
+      <button class="btn btn-primary" id="saveBtn">保存</button>
+    </div>
+  </div>
+
+  <!-- menu sheet -->
+  <div class="sheet-bg" id="menuBg"></div>
+  <div class="sheet" id="menuSheet">
+    <div class="grabber"></div>
+    <h2>メニュー</h2>
+    <div class="menu-item" id="mi-export">
+      <span class="mi-emoji">⬇️</span>
+      <div><div>データ書き出し（JSON）</div><div class="mi-sub">バックアップ・他端末へ移す</div></div>
+    </div>
+    <div class="menu-item" id="mi-import">
+      <span class="mi-emoji">⬆️</span>
+      <div><div>データ読み込み（JSON）</div><div class="mi-sub">書き出したファイルから復元</div></div>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" class="hidden" />
+    <div class="menu-item" id="mi-sort">
+      <span class="mi-emoji">↕️</span>
+      <div><div id="sortLabel">並び順：次の請求日</div><div class="mi-sub">タップで切り替え</div></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const KEY = "subsManager.v1";
+
+  const CATS = [
+    {id:"ai",     emoji:"🤖", name:"AI・ツール"},
+    {id:"design", emoji:"🎨", name:"デザイン"},
+    {id:"media",  emoji:"🎬", name:"動画・音声"},
+    {id:"storage",emoji:"☁️", name:"ストレージ"},
+    {id:"work",   emoji:"💼", name:"仕事・業務"},
+    {id:"ent",    emoji:"🎵", name:"エンタメ"},
+    {id:"health", emoji:"💪", name:"健康・運動"},
+    {id:"insure", emoji:"🛡️", name:"保険・固定費"},
+    {id:"shop",   emoji:"🛍️", name:"ショッピング"},
+    {id:"other",  emoji:"✦",  name:"その他"}
+  ];
+  const CAT_MAP = {}; CATS.forEach(c=>CAT_MAP[c.id]=c);
+  const CYCLE_JP = {monthly:"月", yearly:"年", quarterly:"四半期", weekly:"週"};
+
+  // ---------- storage ----------
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)); return (d&&Array.isArray(d.items))?d:{items:[],sort:"next"}; }catch(e){ return {items:[],sort:"next"}; } }
+  function saveAll(){ localStorage.setItem(KEY, JSON.stringify(store)); }
+  let store = load();
+  if(!store.sort) store.sort = "next";
+
+  // ---------- date (5am boundary) ----------
+  function todayDate(){
+    const s = new Date(Date.now() - 5*3600*1000);
+    return new Date(s.getFullYear(), s.getMonth(), s.getDate());
+  }
+  function parseDate(str){ if(!str) return null; const [y,m,d]=str.split("-").map(Number); return new Date(y,m-1,d); }
+  function fmtDateStr(dt){ if(!dt) return ""; return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`; }
+  function advance(dt,cycle){
+    const n=new Date(dt);
+    if(cycle==="yearly") n.setFullYear(n.getFullYear()+1);
+    else if(cycle==="quarterly") n.setMonth(n.getMonth()+3);
+    else if(cycle==="weekly") n.setDate(n.getDate()+7);
+    else n.setMonth(n.getMonth()+1);
+    return n;
+  }
+  function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+
+  // ---------- money ----------
+  function monthlyEquiv(it){
+    const c=Number(it.cost)||0;
+    if(it.cycle==="yearly") return c/12;
+    if(it.cycle==="quarterly") return c/3;
+    if(it.cycle==="weekly") return c*52/12;
+    return c;
+  }
+  function fmtMoney(n,cur){
+    const sym = cur==="JPY" ? "¥" : "$";
+    if(cur==="JPY") return sym + Math.round(n).toLocaleString();
+    const r = Math.round(n*100)/100;
+    return sym + r.toLocaleString(undefined,{minimumFractionDigits:(r%1?2:0),maximumFractionDigits:2});
+  }
+
+  // next charge date for an active item (rolls past dates forward)
+  function nextCharge(it){
+    const base = parseDate(it.nextDate);
+    if(!base) return null;
+    if(it.status!=="active") return base;
+    let d=new Date(base), t=todayDate(), guard=0;
+    while(d<t && guard<800){ d=advance(d,it.cycle); guard++; }
+    return d;
+  }
+
+  const $ = id => document.getElementById(id);
+
+  // ---------- build category chips ----------
+  (function(){
+    $("f-cat").innerHTML = CATS.map(c=>`<div class="catchip" data-v="${c.id}"><span>${c.emoji}</span>${c.name}</div>`).join("");
+  })();
+
+  // ---------- form state ----------
+  let editing = null; // id being edited, or null for new
+  const form = {cur:"USD",cycle:"monthly",cat:"ai",status:"active"};
+
+  function segSet(wrap,val){
+    $(wrap).querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===val));
+  }
+  function catSet(val){
+    $("f-cat").querySelectorAll(".catchip").forEach(b=>b.classList.toggle("on", b.dataset.v===val));
+  }
+
+  $("f-cur").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; form.cur=b.dataset.v; segSet("f-cur",form.cur); });
+  $("f-cycle").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; form.cycle=b.dataset.v; segSet("f-cycle",form.cycle); });
+  $("f-cat").addEventListener("click",e=>{ const b=e.target.closest(".catchip"); if(!b)return; form.cat=b.dataset.v; catSet(form.cat); });
+  $("f-status").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b)return;
+    form.status=b.dataset.v; segSet("f-status",form.status);
+    $("f-endwrap").classList.toggle("hidden", form.status!=="cancelled");
+  });
+
+  // ---------- open / close form ----------
+  function openForm(it){
+    editing = it ? it.id : null;
+    $("formTitle").textContent = it ? "サブスクを編集" : "サブスクを追加";
+    $("delBtn").classList.toggle("hidden", !it);
+    form.cur = it?it.cur:"USD";
+    form.cycle = it?it.cycle:"monthly";
+    form.cat = it?it.cat:"ai";
+    form.status = it?it.status:"active";
+    $("f-name").value = it?it.name:"";
+    $("f-cost").value = it?(it.cost??""):"";
+    $("f-next").value = it?(it.nextDate||""):"";
+    $("f-pay").value = it?(it.pay||""):"";
+    $("f-end").value = it?(it.endDate||""):"";
+    $("f-url").value = it?(it.url||""):"";
+    $("f-notes").value = it?(it.notes||""):"";
+    segSet("f-cur",form.cur); segSet("f-cycle",form.cycle); segSet("f-status",form.status); catSet(form.cat);
+    $("f-endwrap").classList.toggle("hidden", form.status!=="cancelled");
+    $("formBg").classList.add("show"); $("formSheet").classList.add("show");
+  }
+  function closeForm(){ $("formBg").classList.remove("show"); $("formSheet").classList.remove("show"); }
+  $("addBtn").addEventListener("click",()=>openForm(null));
+  $("formBg").addEventListener("click",closeForm);
+
+  function uid(){ return "s"+Math.random().toString(36).slice(2,9)+(store.items.length); }
+
+  $("saveBtn").addEventListener("click",()=>{
+    const name=$("f-name").value.trim();
+    if(!name){ $("f-name").focus(); return; }
+    const data={
+      name,
+      cost: parseFloat($("f-cost").value)||0,
+      cur: form.cur,
+      cycle: form.cycle,
+      nextDate: $("f-next").value||"",
+      cat: form.cat,
+      pay: $("f-pay").value.trim(),
+      status: form.status,
+      endDate: form.status==="cancelled" ? ($("f-end").value||"") : "",
+      url: $("f-url").value.trim(),
+      notes: $("f-notes").value.trim(),
+      updatedAt: new Date().toISOString()
+    };
+    if(editing){
+      const i=store.items.findIndex(x=>x.id===editing);
+      if(i>=0) store.items[i]=Object.assign(store.items[i],data);
+    } else {
+      data.id=uid(); data.createdAt=data.updatedAt; store.items.push(data);
+    }
+    saveAll(); closeForm(); render(); flash();
+  });
+
+  $("delBtn").addEventListener("click",()=>{
+    if(!editing) return;
+    if(!confirm("このサブスクを削除しますか？")) return;
+    store.items = store.items.filter(x=>x.id!==editing);
+    saveAll(); closeForm(); render(); flash("削除しました");
+  });
+
+  // ---------- menu ----------
+  function openMenu(){ $("menuBg").classList.add("show"); $("menuSheet").classList.add("show"); }
+  function closeMenu(){ $("menuBg").classList.remove("show"); $("menuSheet").classList.remove("show"); }
+  $("menuBtn").addEventListener("click",openMenu);
+  $("menuBg").addEventListener("click",closeMenu);
+  $("mi-export").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify(store,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob); const a=document.createElement("a");
+    a.href=url; a.download=`subs-export-${fmtDateStr(todayDate())}.json`; a.click(); URL.revokeObjectURL(url); closeMenu();
+  });
+  $("mi-import").addEventListener("click",()=>$("importFile").click());
+  $("importFile").addEventListener("change",e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader();
+    r.onload=()=>{ try{
+      const d=JSON.parse(r.result);
+      if(d&&Array.isArray(d.items)){ store=d; if(!store.sort) store.sort="next"; saveAll(); render(); closeMenu(); flash("読み込みました"); }
+      else alert("形式が違うみたい。書き出したJSONを選んでね。");
+    }catch(err){ alert("読み込めませんでした。"); } };
+    r.readAsText(file); e.target.value="";
+  });
+  $("mi-sort").addEventListener("click",()=>{
+    store.sort = store.sort==="next" ? "cost" : (store.sort==="cost" ? "name" : "next");
+    saveAll(); updateSortLabel(); render();
+  });
+  function updateSortLabel(){
+    $("sortLabel").textContent = "並び順：" + (store.sort==="next"?"次の請求日":store.sort==="cost"?"月額が高い順":"名前順");
+  }
+
+  // ---------- filter ----------
+  let filter = "all";
+  $("tabs").addEventListener("click",e=>{
+    const t=e.target.closest(".tab"); if(!t)return;
+    filter=t.dataset.f;
+    $("tabs").querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
+    render();
+  });
+
+  // ---------- classify ----------
+  function info(it){
+    const today=todayDate();
+    const r={soon:false,due:false,ended:false,days:null,charge:null};
+    if(it.status==="active"){
+      const c=nextCharge(it); r.charge=c;
+      if(c){ r.days=daysBetween(today,c); r.due=r.days<=3; r.soon=r.days<=14; }
+    } else if(it.status==="cancelled"){
+      const e=parseDate(it.endDate);
+      if(e){ r.days=daysBetween(today,e); r.ended=r.days<0; }
+      else r.ended=true;
+    } else { r.ended=false; } // paused
+    return r;
+  }
+
+  // ---------- render ----------
+  function render(){
+    const items=store.items;
+    // summary
+    const active=items.filter(x=>x.status==="active");
+    const byCur={};
+    active.forEach(x=>{ byCur[x.cur]=(byCur[x.cur]||0)+monthlyEquiv(x); });
+    const curs=Object.keys(byCur);
+    const prim = curs.includes("USD")?"USD":(curs[0]||"USD");
+    $("sumMonthly").innerHTML = fmtMoney(byCur[prim]||0,prim)+`<span class="cyc"> /月</span>`;
+    $("sumYearly").textContent = "年間 "+fmtMoney((byCur[prim]||0)*12,prim) + (curs.filter(c=>c!==prim).map(c=>`　＋ ${fmtMoney(byCur[c],c)}/月`).join(""));
+    $("cntActive").textContent = active.length;
+    $("cntAll").textContent = items.length;
+    // next renewal label
+    const upcoming = active.map(x=>({x,c:nextCharge(x)})).filter(o=>o.c).sort((a,b)=>a.c-b.c)[0];
+    if(upcoming){ const d=daysBetween(todayDate(),upcoming.c); $("nextLabel").textContent = d<=0?"今日":d+"日後"; }
+    else $("nextLabel").textContent="—";
+
+    // alerts: cancelled & still active (endDate in future)
+    const alertsEl=$("alerts"); alertsEl.innerHTML="";
+    items.filter(x=>x.status==="cancelled" && x.endDate).forEach(x=>{
+      const d=daysBetween(todayDate(),parseDate(x.endDate));
+      if(d>=0){
+        const div=document.createElement("div"); div.className="alert";
+        div.innerHTML=`<span class="ico">⏳</span><div class="txt"><b>${esc(x.name)}</b> は解約済み。あと <b>${d}日</b>（${x.endDate}）で終了。それまでは使える。</div>`;
+        alertsEl.appendChild(div);
+      }
+    });
+
+    // tab counts
+    const cnt={all:items.length,active:active.length,
+      soon:active.filter(x=>{const i=info(x);return i.soon;}).length,
+      off:items.filter(x=>x.status!=="active").length};
+    $("tn-all").textContent=cnt.all; $("tn-active").textContent=cnt.active; $("tn-soon").textContent=cnt.soon; $("tn-off").textContent=cnt.off;
+
+    // filter
+    let view=items.filter(x=>{
+      if(filter==="active") return x.status==="active";
+      if(filter==="off") return x.status!=="active";
+      if(filter==="soon") return x.status==="active" && info(x).soon;
+      return true;
+    });
+
+    // sort
+    view.sort((a,b)=>{
+      // ended/paused to the bottom always
+      const ai=info(a), bi=info(b);
+      const aOff=(a.status!=="active"), bOff=(b.status!=="active");
+      if(aOff!==bOff) return aOff?1:-1;
+      if(store.sort==="cost") return monthlyEquiv(b)-monthlyEquiv(a);
+      if(store.sort==="name") return a.name.localeCompare(b.name,"ja");
+      // next date
+      const ac=ai.charge?ai.charge.getTime():Infinity, bc=bi.charge?bi.charge.getTime():Infinity;
+      return ac-bc;
+    });
+
+    const listEl=$("list");
+    if(!view.length){
+      listEl.innerHTML = `<div class="empty"><div class="e-emoji">🧾</div>
+        <div class="e-ttl">${items.length? "ここには何もないよ":"まだサブスク未登録"}</div>
+        <div class="e-sub">${items.length? "別のタブを見てみて":"右下の ＋ から追加。<br>金額・周期・次の請求日を入れるだけ。"}</div></div>`;
+      return;
+    }
+    listEl.innerHTML = view.map(x=>card(x)).join("");
+    listEl.querySelectorAll(".sub").forEach(el=>el.addEventListener("click",()=>{
+      const it=store.items.find(s=>s.id===el.dataset.id); if(it) openForm(it);
+    }));
+  }
+
+  function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+  function card(x){
+    const cat=CAT_MAP[x.cat]||CAT_MAP.other;
+    const i=info(x);
+    let cls="sub", badges="";
+    if(x.status==="active"){
+      if(i.due) cls+=" due"; else if(i.soon) cls+=" soon";
+      if(i.charge){
+        const lbl = i.days<=0?"今日請求":(i.days+"日後");
+        const bc = i.due?"due":(i.soon?"soon":"");
+        badges += `<span class="badge ${bc}">↻ ${lbl}</span>`;
+      }
+    } else if(x.status==="cancelled"){
+      if(i.ended){ cls+=" ended"; badges+=`<span class="badge cancel">解約・終了</span>`; }
+      else badges+=`<span class="badge cancel">解約（${i.days}日後終了）</span>`;
+    } else {
+      cls+=" ended"; badges+=`<span class="badge pause">休止中</span>`;
+    }
+    badges += `<span class="badge cat">${cat.emoji} ${cat.name}</span>`;
+    const cyc = CYCLE_JP[x.cycle]||"月";
+    const pay = x.pay?`<span class="pay">${esc(x.pay)}</span>`:"";
+    return `<div class="${cls}" data-id="${x.id}">
+      <div class="accentbar"></div>
+      <div class="top">
+        <div class="name-wrap"><span class="emoji">${cat.emoji}</span><span class="name">${esc(x.name)}</span></div>
+        <div class="cost">${fmtMoney(Number(x.cost)||0,x.cur)}<span class="c"> /${cyc}</span></div>
+      </div>
+      <div class="bottom">${badges}${pay}</div>
+    </div>`;
+  }
+
+  // ---------- swipe-down to close sheets ----------
+  [["formSheet","formBg",closeForm],["menuSheet","menuBg",closeMenu]].forEach(([s,bg,close])=>{
+    let sy=0;
+    $(s).addEventListener("touchstart",e=>{ sy=e.touches[0].clientY; },{passive:true});
+    $(s).addEventListener("touchend",e=>{ if($(s).scrollTop<=0 && e.changedTouches[0].clientY-sy>90) close(); },{passive:true});
+  });
+
+  function flash(msg){ const f=$("flash"); f.textContent=msg||"保存しました"; f.classList.add("show"); setTimeout(()=>f.classList.remove("show"),1200); }
+
+  // ---------- init ----------
+  updateSortLabel();
+  render();
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+})();
+</script>
+</body>
+</html>
