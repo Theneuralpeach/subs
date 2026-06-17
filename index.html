@@ -326,6 +326,10 @@
       <div><div>データ読み込み（JSON）</div><div class="mi-sub">書き出したファイルから復元</div></div>
     </div>
     <input type="file" id="importFile" accept="application/json,.json" class="hidden" />
+    <div class="menu-item" id="mi-paste">
+      <span class="mi-emoji">📲</span>
+      <div><div>リンクから読み込む</div><div class="mi-sub">読み込みリンクを貼り付けて取り込む</div></div>
+    </div>
     <div class="menu-item" id="mi-sort">
       <span class="mi-emoji">↕️</span>
       <div><div id="sortLabel">並び順：次の請求日</div><div class="mi-sub">タップで切り替え</div></div>
@@ -507,6 +511,16 @@
     }catch(err){ alert("読み込めませんでした。"); } };
     r.readAsText(file); e.target.value="";
   });
+  $("mi-paste").addEventListener("click",()=>{
+    closeMenu();
+    const raw = prompt("読み込みリンク（または code）を貼り付けてね:");
+    if(!raw) return;
+    const m = raw.match(/#import=(.+)$/);
+    const enc = (m ? m[1] : raw).trim();
+    const data = decodeImport(enc);
+    if(!data || !Array.isArray(data.items)){ alert("リンクが読めませんでした。リンク全体をコピーして貼り付けてください。"); return; }
+    applyImport(data);
+  });
   $("mi-sort").addEventListener("click",()=>{
     store.sort = store.sort==="next" ? "cost" : (store.sort==="cost" ? "name" : "next");
     saveAll(); updateSortLabel(); render();
@@ -649,22 +663,26 @@
 
   function flash(msg){ const f=$("flash"); f.textContent=msg||"保存しました"; f.classList.add("show"); setTimeout(()=>f.classList.remove("show"),1200); }
 
-  // ---------- hash import (shareable seed link: #import=<base64 of JSON>) ----------
-  function tryHashImport(){
-    const m = (location.hash||"").match(/^#import=(.+)$/);
-    if(!m) return;
-    let data;
-    try{ data = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); }
-    catch(e){ return; }
-    if(!data || !Array.isArray(data.items)) return;
-    history.replaceState(null,"",location.pathname+location.search);
+  // ---------- import (shareable seed link / paste: #import=<base64 of JSON>) ----------
+  function decodeImport(enc){
+    try{ return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(enc))))); }
+    catch(e){ return null; }
+  }
+  function applyImport(data){
+    if(!data || !Array.isArray(data.items)) return false;
     const n=data.items.length, cur=store.items.length;
     const msg = cur>0 ? `${n}件のサブスクを読み込みます。今の${cur}件は上書きされます。続ける？`
                       : `${n}件のサブスクを読み込みますか？`;
-    if(confirm(msg)){
-      store=data; if(!store.sort) store.sort="next"; saveAll();
-      updateSortLabel(); render(); flash(`${n}件 読み込みました`);
-    }
+    if(!confirm(msg)) return false;
+    store=data; if(!store.sort) store.sort="next"; saveAll();
+    updateSortLabel(); render(); flash(`${n}件 読み込みました`);
+    return true;
+  }
+  function tryHashImport(){
+    const m = (location.hash||"").match(/^#import=(.+)$/);
+    if(!m) return;
+    history.replaceState(null,"",location.pathname+location.search);
+    applyImport(decodeImport(m[1]));
   }
 
   // ---------- init ----------
