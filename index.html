@@ -649,9 +649,28 @@
 
   function flash(msg){ const f=$("flash"); f.textContent=msg||"保存しました"; f.classList.add("show"); setTimeout(()=>f.classList.remove("show"),1200); }
 
+  // ---------- hash import (shareable seed link: #import=<base64 of JSON>) ----------
+  function tryHashImport(){
+    const m = (location.hash||"").match(/^#import=(.+)$/);
+    if(!m) return;
+    let data;
+    try{ data = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); }
+    catch(e){ return; }
+    if(!data || !Array.isArray(data.items)) return;
+    history.replaceState(null,"",location.pathname+location.search);
+    const n=data.items.length, cur=store.items.length;
+    const msg = cur>0 ? `${n}件のサブスクを読み込みます。今の${cur}件は上書きされます。続ける？`
+                      : `${n}件のサブスクを読み込みますか？`;
+    if(confirm(msg)){
+      store=data; if(!store.sort) store.sort="next"; saveAll();
+      updateSortLabel(); render(); flash(`${n}件 読み込みました`);
+    }
+  }
+
   // ---------- init ----------
   updateSortLabel();
   render();
+  tryHashImport();
   if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 })();
 </script>

@@ -1,4 +1,4 @@
-const CACHE = "subs-v1";
+const CACHE = "subs-v2";
 const ASSETS = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", e => {
