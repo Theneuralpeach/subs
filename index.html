@@ -224,6 +224,7 @@
     <div class="tab" data-f="active">現役<span class="n" id="tn-active">0</span></div>
     <div class="tab" data-f="soon">更新間近<span class="n" id="tn-soon">0</span></div>
     <div class="tab" data-f="off">解約・休止<span class="n" id="tn-off">0</span></div>
+    <div class="tab" data-f="free">無料<span class="n" id="tn-free">0</span></div>
   </div>
 
   <!-- list -->
@@ -557,8 +558,9 @@
   // ---------- render ----------
   function render(){
     const items=store.items;
+    const paidItems=items.filter(x=>!x.free);
     // summary
-    const active=items.filter(x=>x.status==="active");
+    const active=paidItems.filter(x=>x.status==="active");
     const byCur={};
     active.forEach(x=>{ byCur[x.cur]=(byCur[x.cur]||0)+monthlyEquiv(x); });
     const curs=Object.keys(byCur);
@@ -566,7 +568,7 @@
     $("sumMonthly").innerHTML = fmtMoney(byCur[prim]||0,prim)+`<span class="cyc"> /月</span>`;
     $("sumYearly").textContent = "年間 "+fmtMoney((byCur[prim]||0)*12,prim) + (curs.filter(c=>c!==prim).map(c=>`　＋ ${fmtMoney(byCur[c],c)}/月`).join(""));
     $("cntActive").textContent = active.length;
-    $("cntAll").textContent = items.length;
+    $("cntAll").textContent = paidItems.length;
     // next renewal label
     const upcoming = active.map(x=>({x,c:nextCharge(x)})).filter(o=>o.c).sort((a,b)=>a.c-b.c)[0];
     if(upcoming){ const d=daysBetween(todayDate(),upcoming.c); $("nextLabel").textContent = d<=0?"今日":d+"日後"; }
@@ -574,7 +576,7 @@
 
     // alerts: cancelled & still active (endDate in future)
     const alertsEl=$("alerts"); alertsEl.innerHTML="";
-    items.filter(x=>x.status==="cancelled" && x.endDate).forEach(x=>{
+    paidItems.filter(x=>x.status==="cancelled" && x.endDate).forEach(x=>{
       const d=daysBetween(todayDate(),parseDate(x.endDate));
       if(d>=0){
         const div=document.createElement("div"); div.className="alert";
@@ -584,13 +586,16 @@
     });
 
     // tab counts
-    const cnt={all:items.length,active:active.length,
+    const cnt={all:paidItems.length,active:active.length,
       soon:active.filter(x=>{const i=info(x);return i.soon;}).length,
-      off:items.filter(x=>x.status!=="active").length};
-    $("tn-all").textContent=cnt.all; $("tn-active").textContent=cnt.active; $("tn-soon").textContent=cnt.soon; $("tn-off").textContent=cnt.off;
+      off:paidItems.filter(x=>x.status!=="active").length,
+      free:items.filter(x=>x.free).length};
+    $("tn-all").textContent=cnt.all; $("tn-active").textContent=cnt.active; $("tn-soon").textContent=cnt.soon; $("tn-off").textContent=cnt.off; $("tn-free").textContent=cnt.free;
 
     // filter
     let view=items.filter(x=>{
+      if(filter==="free") return !!x.free;
+      if(x.free) return false;
       if(filter==="active") return x.status==="active";
       if(filter==="off") return x.status!=="active";
       if(filter==="soon") return x.status==="active" && info(x).soon;
@@ -644,9 +649,9 @@
     }
     badges += `<span class="badge cat">${cat.emoji} ${cat.name}</span>`;
     const cyc = CYCLE_JP[x.cycle]||"月";
-    const costHtml = x.cycle==="monthly"
+    const costHtml = x.free ? `<span class="qt">無料</span>` : (x.cycle==="monthly"
       ? `${fmtMoney(Number(x.cost)||0,x.cur)}<span class="c"> /月</span>`
-      : `${fmtMoney(monthlyEquiv(x),x.cur)}<span class="c"> /月</span><span class="qt">（${cyc} ${fmtMoney(Number(x.cost)||0,x.cur)}）</span>`;
+      : `${fmtMoney(monthlyEquiv(x),x.cur)}<span class="c"> /月</span><span class="qt">（${cyc} ${fmtMoney(Number(x.cost)||0,x.cur)}）</span>`);
     const pay = x.pay?`<span class="pay">${esc(x.pay)}</span>`:"";
     return `<div class="${cls}" data-id="${x.id}">
       <div class="accentbar"></div>
